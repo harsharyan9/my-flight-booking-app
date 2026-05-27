@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 2. Validation Blueprints
+    function isValidBooking(data) {
+      return data.keys().hasAll(['userId', 'passengerName', 'status', 'bookedAt', 'flightDetails']) &&
+             data.userId == request.auth.uid &&
+             data.passengerName is string && data.passengerName.size() <= 200 &&
+             data.status in ['confirmed', 'pending', 'cancelled'] &&
+             data.flightDetails is map;
+    }
+
+    // --- Collection Rules ---
+
+    match /bookings/{bookingId} {
+      // Rule 3: Path Variable Hardening
+      allow get: if isSignedIn() && isOwner(resource.data.userId) && isValidId(bookingId);
+      
+      // Rule 8: Secure List Queries (The "Query Enforcer")
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() && 
+                      isValidId(bookingId) && 
+                      isValidBooking(request.resource.data) &&
+                      request.resource.data.bookedAt == request.time;
+
+      allow update: if isSignedIn() && 
+                      isOwner(resource.data.userId) && 
+                      isValidBooking(request.resource.data) &&
+                      // Action: Cancel
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledAt', 'updatedAt']));
+
+      allow delete: if isSignedIn() && isOwner(resource.data.userId); // Allow users to remove bookings from their itinerary
+    }
+  }
+}

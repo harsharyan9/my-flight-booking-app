@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Flight": {
+      "title": "Flight",
+      "description": "Details of a specific flight",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "airline": { "type": "string" },
+        "flightNumber": { "type": "string" },
+        "origin": {
+          "type": "object",
+          "properties": {
+            "code": { "type": "string" },
+            "city": { "type": "string" },
+            "airport": { "type": "string" }
+          }
+        },
+        "destination": {
+          "type": "object",
+          "properties": {
+            "code": { "type": "string" },
+            "city": { "type": "string" },
+            "airport": { "type": "string" }
+          }
+        },
+        "departureTime": { "type": "string", "format": "date-time" },
+        "arrivalTime": { "type": "string", "format": "date-time" },
+        "price": { "type": "number" },
+        "currency": { "type": "string" },
+        "duration": { "type": "string" },
+        "class": { "enum": ["Economy", "Business", "First"] },
+        "stops": { "type": "number" }
+      }
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "A flight booking record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "passengerName": { "type": "string" },
+        "seatNumber": { "type": "string" },
+        "status": { "enum": ["confirmed", "pending", "cancelled"] },
+        "bookedAt": { "type": "string", "format": "date-time" },
+        "flightDetails": { "$ref": "#/entities/Flight" }
+      },
+      "required": ["userId", "passengerName", "status", "bookedAt", "flightDetails"]
+    }
+  },
+  "firestore": {
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Collection of user flight bookings"
+    }
+  }
+}
