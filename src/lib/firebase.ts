@@ -6,7 +6,12 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfigJson from '../../firebase-applet-config.json';
+
+const firebaseConfigJson = (() => {
+  const configs = import.meta.glob<{ default: any }>('../../firebase-applet-config*.json', { eager: true });
+  const configModule = Object.values(configs)[0];
+  return configModule?.default || {};
+})();
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
